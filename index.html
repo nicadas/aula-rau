@@ -75,14 +75,12 @@ let companies = [];
 let chart;
 let currentMetric = 'revenue_current';
 
-// Função para carregar os dados do TXT corretamente
+// Função para carregar os dados do TXT
 async function loadData() {
     try {
-        const response = await fetch('companies_data_selected.txt'); // deve estar na mesma pasta do HTML
-        console.log('Status da resposta:', response.status);
+        const response = await fetch('companies_data_selected.txt'); // TXT deve estar na mesma pasta
         if (!response.ok) throw new Error('Erro ao carregar o arquivo TXT.');
         const text = await response.text();
-        console.log('Conteúdo do TXT carregado (primeiros 200 chars):', text.substring(0, 200));
         const lines = text.trim().split('\n');
         const headers = lines[0].split(',').map(h => h.trim());
 
@@ -96,7 +94,6 @@ async function loadData() {
             return obj;
         }).filter(c => c !== null);
 
-        console.log('Empresas carregadas:', companies.length);
         populateDropdown();
         createChart(currentMetric);
     } catch (error) {
@@ -104,6 +101,7 @@ async function loadData() {
     }
 }
 
+// Preenche o dropdown com os nomes das empresas
 function populateDropdown() {
   const select = document.getElementById('companySelect');
   companies.forEach(c => {
@@ -114,6 +112,7 @@ function populateDropdown() {
   });
 }
 
+// Cores aleatórias para os pontos
 function getRandomColor() {
   const r = Math.floor(Math.random()*200)+30;
   const g = Math.floor(Math.random()*200)+30;
@@ -121,6 +120,7 @@ function getRandomColor() {
   return `rgba(${r},${g},${b},0.7)`;
 }
 
+// Cria o gráfico com uma linha para todos os pontos
 function createChart(metric) {
   const ctx = document.getElementById('companyChart').getContext('2d');
   if(chart) chart.destroy();
@@ -129,16 +129,17 @@ function createChart(metric) {
     type: 'line',
     data: {
       labels: companies.map(c => c.name),
-      datasets: companies.map(c => ({
-        label: c.name,
-        data: [c[metric]],
-        borderColor: getRandomColor(),
+      datasets: [{
+        label: metric,
+        data: companies.map(c => c[metric]),
+        borderColor: 'rgba(0,123,255,0.7)',
         backgroundColor: 'transparent',
         fill: false,
         tension: 0.3,
-        pointRadius: 5,
+        pointRadius: 6,
+        pointBackgroundColor: companies.map(() => getRandomColor()),
         borderWidth: 2
-      }))
+      }]
     },
     options: {
       responsive: true,
@@ -148,7 +149,7 @@ function createChart(metric) {
         tooltip: {
           callbacks: {
             label: function(context) {
-              return context.dataset.label + ': ' + context.dataset.data[0];
+              return context.label + ': ' + context.parsed.y;
             }
           }
         }
@@ -161,26 +162,24 @@ function createChart(metric) {
   });
 }
 
+// Atualiza o gráfico com a métrica selecionada
 function updateChart(metric) {
   currentMetric = metric;
   createChart(currentMetric);
   highlightCompany();
 }
 
+// Destaca a empresa selecionada no dropdown
 function highlightCompany() {
   const select = document.getElementById('companySelect');
   const selected = select.value;
   
-  chart.data.datasets.forEach(ds => {
-    if(selected !== 'none' && ds.label === selected) {
-      ds.borderWidth = 5;
-      ds.borderColor = 'rgba(255,0,0,1)';
-      ds.pointRadius = 7;
-    } else {
-      ds.borderWidth = 2;
-      ds.pointRadius = 5;
-    }
-  });
+  chart.data.datasets[0].pointBorderColor = companies.map(c => 
+    (selected !== 'none' && c.name === selected) ? 'red' : 'rgba(0,0,0,0)'
+  );
+  chart.data.datasets[0].pointBorderWidth = companies.map(c => 
+    (selected !== 'none' && c.name === selected) ? 4 : 0
+  );
   chart.update();
 }
 
@@ -189,4 +188,3 @@ window.onload = loadData;
 
 </body>
 </html>
-
