@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Gráfico Dinâmico de Empresas</title>
+  <title>Gráficos de Empresas</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -13,7 +13,22 @@
       align-items: center;
       padding: 20px;
     }
-    h1 { color: #333; }
+    h1 { color: #333; text-align: center; }
+    #controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button, select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover { background-color: #ddd; }
     #chartContainer {
       width: 90%;
       max-width: 900px;
@@ -23,20 +38,19 @@
       box-shadow: 0 8px 16px rgba(0,0,0,0.2);
     }
     canvas { margin-top: 20px; }
-    select {
-      padding: 8px;
-      margin-bottom: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
   </style>
 </head>
 <body>
-  <h1>Admitidos e Demitidos por Ano</h1>
+  <h1>Gráficos Dinâmicos de Empresas</h1>
 
-  <label for="empresaSelect">Escolha a empresa:</label>
-  <select id="empresaSelect"></select>
+  <div id="controls">
+    <label for="empresaSelect">Escolha a empresa:</label>
+    <select id="empresaSelect"></select>
+    <button data-chart="faturamento">Faturamento Atual</button>
+    <button data-chart="fluxo">Dinheiro Entrou/Saiu</button>
+    <button data-chart="funcionarios">Total de Funcionários</button>
+    <button data-chart="admDem">Admitidos/Demitidos</button>
+  </div>
 
   <div id="chartContainer">
     <canvas id="linhaGrafico"></canvas>
@@ -44,14 +58,14 @@
 
   <script>
     const select = document.getElementById('empresaSelect');
+    const buttons = document.querySelectorAll('button[data-chart]');
     const ctx = document.getElementById('linhaGrafico').getContext('2d');
     let chart;
+    let dadosEmpresa = [];
 
-    // Função para ler CSV/TXT
     async function carregarDados() {
-      const response = await fetch('companies_data_selected.txt'); // arquivo no GitHub Pages
+      const response = await fetch('companies_data_selected.txt');
       const text = await response.text();
-
       const linhas = text.trim().split('\n');
       const cabecalho = linhas[0].split(',');
       const dados = linhas.slice(1).map(linha => {
@@ -65,47 +79,93 @@
       return dados;
     }
 
-    // Inicializar gráfico
-    function initChart(empresa) {
-      const labels = ['2023','2024','2025'];
-      const dadosAdmitidos = [empresa['hires_2023'], empresa['hires_2024'], empresa['hires_2025']];
-      const dadosDemitidos = [empresa['fires_2023'], empresa['fires_2024'], empresa['fires_2025']];
-
+    function initChart(empresa, tipo) {
       if(chart) chart.destroy();
 
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
+      let data = {};
+      if(tipo === 'faturamento') {
+        data = {
+          labels: ['2023','2024','2025'],
+          datasets: [{
+            label: 'Faturamento Atual',
+            data: [empresa.revenue_current, empresa.revenue_current, empresa.revenue_current],
+            borderColor: 'blue',
+            backgroundColor: 'rgba(0,0,255,0.1)',
+            fill: true,
+            tension: 0.3
+          }]
+        };
+      } else if(tipo === 'fluxo') {
+        data = {
+          labels: ['2023','2024','2025'],
+          datasets: [
+            {
+              label: 'Dinheiro Entrou',
+              data: [empresa.money_in, empresa.money_in, empresa.money_in],
+              borderColor: 'green',
+              backgroundColor: 'rgba(0,255,0,0.1)',
+              fill: true,
+              tension: 0.3
+            },
+            {
+              label: 'Dinheiro Saiu',
+              data: [empresa.money_out, empresa.money_out, empresa.money_out],
+              borderColor: 'red',
+              backgroundColor: 'rgba(255,0,0,0.1)',
+              fill: true,
+              tension: 0.3
+            }
+          ]
+        };
+      } else if(tipo === 'funcionarios') {
+        data = {
+          labels: ['Total de Funcionários'],
+          datasets: [{
+            label: 'Funcionários',
+            data: [empresa.employees_total],
+            backgroundColor: ['orange']
+          }]
+        };
+      } else if(tipo === 'admDem') {
+        data = {
+          labels: ['2023','2024','2025'],
           datasets: [
             {
               label: 'Admitidos',
-              data: dadosAdmitidos,
+              data: [empresa.hires_2023, empresa.hires_2024, empresa.hires_2025],
               borderColor: 'green',
               backgroundColor: 'rgba(0,255,0,0.1)',
-              tension: 0.3,
-              fill: true
+              fill: true,
+              tension: 0.3
             },
             {
               label: 'Demitidos',
-              data: dadosDemitidos,
+              data: [empresa.fires_2023, empresa.fires_2024, empresa.fires_2025],
               borderColor: 'red',
               backgroundColor: 'rgba(255,0,0,0.1)',
-              tension: 0.3,
-              fill: true
+              fill: true,
+              tension: 0.3
             }
           ]
-        },
+        };
+      }
+
+      chart = new Chart(ctx, {
+        type: tipo==='funcionarios' ? 'bar' : 'line',
+        data: data,
         options: {
           responsive: true,
-          plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
-          scales: { y: { beginAtZero: true }, x: { title: { display: true, text: 'Ano' } } }
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { mode: 'index', intersect: false }
+          },
+          scales: { y: { beginAtZero: true }, x: { title: { display: true, text: tipo==='funcionarios' ? '' : 'Ano' } } }
         }
       });
     }
 
-    // Carregar dados e popular select
     carregarDados().then(dados => {
+      dadosEmpresa = dados;
       dados.forEach((empresa, index) => {
         const option = document.createElement('option');
         option.value = index;
@@ -113,14 +173,25 @@
         select.appendChild(option);
       });
 
-      // Inicializar com a primeira empresa
-      initChart(dados[0]);
+      initChart(dados[0], 'admDem');
 
-      // Atualizar gráfico ao mudar a empresa
       select.addEventListener('change', () => {
         const index = parseInt(select.value);
-        initChart(dados[index]);
+        const tipoAtual = document.querySelector('button.active')?.dataset.chart || 'admDem';
+        initChart(dadosEmpresa[index], tipoAtual);
       });
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const empresaAtual = dadosEmpresa[parseInt(select.value)];
+          initChart(empresaAtual, btn.dataset.chart);
+        });
+      });
+
+      // deixar o botão inicial ativo
+      buttons[3].classList.add('active'); // Admitidos/Demitidos
     });
   </script>
 </body>
