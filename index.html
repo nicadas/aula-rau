@@ -78,7 +78,7 @@ let currentMetric = 'revenue_current';
 // Função para carregar os dados do TXT corretamente
 async function loadData() {
     try {
-        const response = await fetch('companies_data_named.txt'); // deve estar na mesma pasta do HTML
+        const response = await fetch('companies_data_selected.txt'); // deve estar na mesma pasta do HTML
         console.log('Status da resposta:', response.status);
         if (!response.ok) throw new Error('Erro ao carregar o arquivo TXT.');
         const text = await response.text();
@@ -189,3 +189,4 @@ window.onload = loadData;
 
 </body>
 </html>
+
