@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Gráfico Dinâmico de Empresas</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 { color: #333; }
+    #chartContainer {
+      width: 90%;
+      max-width: 900px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    canvas { margin-top: 20px; }
+    select {
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Admitidos e Demitidos por Ano</h1>
+
+  <label for="empresaSelect">Escolha a empresa:</label>
+  <select id="empresaSelect"></select>
+
+  <div id="chartContainer">
+    <canvas id="linhaGrafico"></canvas>
+  </div>
+
+  <script>
+    const select = document.getElementById('empresaSelect');
+    const ctx = document.getElementById('linhaGrafico').getContext('2d');
+    let chart;
+
+    // Função para ler CSV/TXT
+    async function carregarDados() {
+      const response = await fetch('companies_data_selected.txt'); // arquivo no GitHub Pages
+      const text = await response.text();
+
+      const linhas = text.trim().split('\n');
+      const cabecalho = linhas[0].split(',');
+      const dados = linhas.slice(1).map(linha => {
+        const valores = linha.split(',');
+        let obj = {};
+        cabecalho.forEach((key, i) => {
+          obj[key] = isNaN(valores[i]) ? valores[i] : parseFloat(valores[i]);
+        });
+        return obj;
+      });
+      return dados;
+    }
+
+    // Inicializar gráfico
+    function initChart(empresa) {
+      const labels = ['2023','2024','2025'];
+      const dadosAdmitidos = [empresa['hires_2023'], empresa['hires_2024'], empresa['hires_2025']];
+      const dadosDemitidos = [empresa['fires_2023'], empresa['fires_2024'], empresa['fires_2025']];
+
+      if(chart) chart.destroy();
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Admitidos',
+              data: dadosAdmitidos,
+              borderColor: 'green',
+              backgroundColor: 'rgba(0,255,0,0.1)',
+              tension: 0.3,
+              fill: true
+            },
+            {
+              label: 'Demitidos',
+              data: dadosDemitidos,
+              borderColor: 'red',
+              backgroundColor: 'rgba(255,0,0,0.1)',
+              tension: 0.3,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+          scales: { y: { beginAtZero: true }, x: { title: { display: true, text: 'Ano' } } }
+        }
+      });
+    }
+
+    // Carregar dados e popular select
+    carregarDados().then(dados => {
+      dados.forEach((empresa, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `Empresa ${index+1}`;
+        select.appendChild(option);
+      });
+
+      // Inicializar com a primeira empresa
+      initChart(dados[0]);
+
+      // Atualizar gráfico ao mudar a empresa
+      select.addEventListener('change', () => {
+        const index = parseInt(select.value);
+        initChart(dados[index]);
+      });
+    });
+  </script>
+</body>
+</html>
