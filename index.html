@@ -7,18 +7,21 @@
 <style>
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f0f2f5;
+    background: url('grafico-de-grafico-de-vara-de-vela-negocios-de-investimento-no-mercado-de-acoes-negociacao-sobre-fundo-azul_62391-73.jpg') no-repeat center center fixed;
+    background-size: cover;
     text-align: center;
     padding: 20px;
+    color: white;
   }
   h1 {
-    color: #222;
+    color: #fff;
     margin-bottom: 15px;
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.7);
   }
   canvas {
-    background: #fff;
+    background: rgba(255, 255, 255, 0.1); /* transparente para ver o fundo */
     border-radius: 15px;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.15);
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.4);
     max-width: 95%;
     margin: 20px auto;
   }
@@ -38,7 +41,7 @@
     cursor: pointer;
     font-weight: 600;
     transition: 0.3s;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
   }
   button:hover {
     background: linear-gradient(45deg, #1e69d2, #4e9af1);
@@ -50,7 +53,7 @@
     border-radius: 6px;
     border: 1px solid #ccc;
     outline: none;
-    box-shadow: 0px 3px 8px rgba(0,0,0,0.1);
+    box-shadow: 0px 3px 8px rgba(0,0,0,0.3);
   }
 </style>
 </head>
@@ -86,7 +89,6 @@ let companies = [];
 let chart;
 let currentMetric = 'revenue_current';
 
-// Função para carregar os dados do TXT
 async function loadData() {
     try {
         const response = await fetch('companies_data_selected.txt');
@@ -112,7 +114,6 @@ async function loadData() {
     }
 }
 
-// Preenche o dropdown com os nomes das empresas
 function populateDropdown() {
   const select = document.getElementById('companySelect');
   companies.forEach(c => {
@@ -123,13 +124,11 @@ function populateDropdown() {
   });
 }
 
-// Paleta de cores suaves
 function getSoftColor(index) {
-  const hue = (index * 137.508) % 360; // Distribuição de cores uniforme
-  return `hsl(${hue}, 65%, 60%)`;
+  const hue = (index * 137.508) % 360;
+  return `hsl(${hue}, 65%, 75%)`;
 }
 
-// Cria o gráfico
 function createChart(metric) {
   const ctx = document.getElementById('companyChart').getContext('2d');
   if(chart) chart.destroy();
@@ -141,7 +140,7 @@ function createChart(metric) {
       datasets: [{
         label: metric,
         data: companies.map(c => c[metric]),
-        borderColor: 'rgba(30,123,255,0.8)',
+        borderColor: 'rgba(30,123,255,0.9)',
         backgroundColor: 'rgba(30,123,255,0.2)',
         fill: true,
         tension: 0.3,
@@ -156,8 +155,8 @@ function createChart(metric) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#fff',
-          titleColor: '#333',
+          backgroundColor: 'rgba(255,255,255,0.9)',
+          titleColor: '#222',
           bodyColor: '#000',
           borderColor: '#ccc',
           borderWidth: 1,
@@ -169,21 +168,19 @@ function createChart(metric) {
         }
       },
       scales: {
-        x: { ticks: { maxRotation: 90, minRotation: 45 } },
-        y: { beginAtZero: true, ticks: { callback: value => value.toLocaleString() } }
+        x: { ticks: { maxRotation: 90, minRotation: 45, color: '#fff' } },
+        y: { beginAtZero: true, ticks: { color: '#fff', callback: value => value.toLocaleString() } }
       }
     }
   });
 }
 
-// Atualiza a métrica
 function updateChart(metric) {
   currentMetric = metric;
   createChart(currentMetric);
   highlightCompany();
 }
 
-// Destaca a empresa selecionada
 function highlightCompany() {
   const select = document.getElementById('companySelect');
   const selected = select.value;
