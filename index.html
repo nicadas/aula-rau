@@ -6,40 +6,51 @@
 <title>Gráfico Dinâmico de Empresas</title>
 <style>
   body {
-    font-family: Arial, sans-serif;
-    background: #f5f5f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f2f5;
     text-align: center;
     padding: 20px;
   }
   h1 {
-    color: #333;
+    color: #222;
+    margin-bottom: 15px;
   }
   canvas {
     background: #fff;
-    border-radius: 10px;
-    box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
+    border-radius: 15px;
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.15);
     max-width: 95%;
     margin: 20px auto;
   }
   .buttons, .dropdown {
     margin: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
   }
   button {
-    margin: 5px;
     padding: 10px 20px;
     border: none;
-    border-radius: 5px;
-    background: #007BFF;
+    border-radius: 8px;
+    background: linear-gradient(45deg, #4e9af1, #1e69d2);
     color: white;
     cursor: pointer;
+    font-weight: 600;
     transition: 0.3s;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
   }
   button:hover {
-    background: #0056b3;
+    background: linear-gradient(45deg, #1e69d2, #4e9af1);
+    transform: translateY(-2px);
   }
   select {
-    padding: 5px 10px;
+    padding: 8px 12px;
     font-size: 16px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    outline: none;
+    box-shadow: 0px 3px 8px rgba(0,0,0,0.1);
   }
 </style>
 </head>
@@ -78,7 +89,7 @@ let currentMetric = 'revenue_current';
 // Função para carregar os dados do TXT
 async function loadData() {
     try {
-        const response = await fetch('companies_data_selected.txt'); // TXT deve estar na mesma pasta
+        const response = await fetch('companies_data_selected.txt');
         if (!response.ok) throw new Error('Erro ao carregar o arquivo TXT.');
         const text = await response.text();
         const lines = text.trim().split('\n');
@@ -112,15 +123,13 @@ function populateDropdown() {
   });
 }
 
-// Cores aleatórias para os pontos
-function getRandomColor() {
-  const r = Math.floor(Math.random()*200)+30;
-  const g = Math.floor(Math.random()*200)+30;
-  const b = Math.floor(Math.random()*200)+30;
-  return `rgba(${r},${g},${b},0.7)`;
+// Paleta de cores suaves
+function getSoftColor(index) {
+  const hue = (index * 137.508) % 360; // Distribuição de cores uniforme
+  return `hsl(${hue}, 65%, 60%)`;
 }
 
-// Cria o gráfico com uma linha para todos os pontos
+// Cria o gráfico
 function createChart(metric) {
   const ctx = document.getElementById('companyChart').getContext('2d');
   if(chart) chart.destroy();
@@ -132,13 +141,13 @@ function createChart(metric) {
       datasets: [{
         label: metric,
         data: companies.map(c => c[metric]),
-        borderColor: 'rgba(0,123,255,0.7)',
-        backgroundColor: 'transparent',
-        fill: false,
+        borderColor: 'rgba(30,123,255,0.8)',
+        backgroundColor: 'rgba(30,123,255,0.2)',
+        fill: true,
         tension: 0.3,
         pointRadius: 6,
-        pointBackgroundColor: companies.map(() => getRandomColor()),
-        borderWidth: 2
+        pointBackgroundColor: companies.map((c, i) => getSoftColor(i)),
+        borderWidth: 3
       }]
     },
     options: {
@@ -147,29 +156,34 @@ function createChart(metric) {
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: '#fff',
+          titleColor: '#333',
+          bodyColor: '#000',
+          borderColor: '#ccc',
+          borderWidth: 1,
           callbacks: {
             label: function(context) {
-              return context.label + ': ' + context.parsed.y;
+              return context.label + ': ' + context.parsed.y.toLocaleString();
             }
           }
         }
       },
       scales: {
         x: { ticks: { maxRotation: 90, minRotation: 45 } },
-        y: { beginAtZero: true }
+        y: { beginAtZero: true, ticks: { callback: value => value.toLocaleString() } }
       }
     }
   });
 }
 
-// Atualiza o gráfico com a métrica selecionada
+// Atualiza a métrica
 function updateChart(metric) {
   currentMetric = metric;
   createChart(currentMetric);
   highlightCompany();
 }
 
-// Destaca a empresa selecionada no dropdown
+// Destaca a empresa selecionada
 function highlightCompany() {
   const select = document.getElementById('companySelect');
   const selected = select.value;
@@ -178,7 +192,7 @@ function highlightCompany() {
     (selected !== 'none' && c.name === selected) ? 'red' : 'rgba(0,0,0,0)'
   );
   chart.data.datasets[0].pointBorderWidth = companies.map(c => 
-    (selected !== 'none' && c.name === selected) ? 4 : 0
+    (selected !== 'none' && c.name === selected) ? 5 : 0
   );
   chart.update();
 }
