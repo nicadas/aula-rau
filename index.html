@@ -18,10 +18,10 @@
     background: #fff;
     border-radius: 10px;
     box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
-    max-width: 90%;
+    max-width: 95%;
     margin: 20px auto;
   }
-  .buttons {
+  .buttons, .dropdown {
     margin: 20px;
   }
   button {
@@ -36,6 +36,10 @@
   }
   button:hover {
     background: #0056b3;
+  }
+  select {
+    padding: 5px 10px;
+    font-size: 16px;
   }
 </style>
 </head>
@@ -56,12 +60,20 @@
   <button onclick="updateChart('fires_2025')">Demitidos 2025</button>
 </div>
 
+<div class="dropdown">
+  <label for="companySelect">Destacar empresa: </label>
+  <select id="companySelect" onchange="highlightCompany()">
+    <option value="none">Nenhuma</option>
+  </select>
+</div>
+
 <canvas id="companyChart" width="1200" height="600"></canvas>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let companies = [];
 let chart;
+let currentMetric = 'revenue_current';
 
 async function loadData() {
   const response = await fetch('companies_data_named.txt');
@@ -78,7 +90,25 @@ async function loadData() {
     return obj;
   });
 
-  createChart('revenue_current');
+  populateDropdown();
+  createChart(currentMetric);
+}
+
+function populateDropdown() {
+  const select = document.getElementById('companySelect');
+  companies.forEach(c => {
+    let option = document.createElement('option');
+    option.value = c.name;
+    option.text = c.name;
+    select.appendChild(option);
+  });
+}
+
+function getRandomColor() {
+  const r = Math.floor(Math.random()*200)+30;
+  const g = Math.floor(Math.random()*200)+30;
+  const b = Math.floor(Math.random()*200)+30;
+  return `rgba(${r},${g},${b},0.7)`;
 }
 
 function createChart(metric) {
@@ -89,57 +119,59 @@ function createChart(metric) {
     type: 'line',
     data: {
       labels: companies.map(c => c.name),
-      datasets: [{
-        label: metric.replace(/_/g, ' '),
-        data: companies.map(c => c[metric]),
-        borderColor: 'rgba(0, 123, 255, 1)',
-        backgroundColor: 'rgba(0, 123, 255, 0.2)',
-        fill: true,
+      datasets: companies.map(c => ({
+        label: c.name,
+        data: [c[metric]],
+        borderColor: getRandomColor(),
+        backgroundColor: 'transparent',
+        fill: false,
         tension: 0.3,
-        pointRadius: 3
-      }]
+        pointRadius: 5,
+        borderWidth: 2
+      }))
     },
     options: {
       responsive: true,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
+      interaction: { mode: 'nearest', intersect: false },
       plugins: {
-        legend: {
-          display: true,
-          labels: {
-            color: '#333',
-            font: {
-              size: 14
-            }
-          }
-        },
+        legend: { display: false },
         tooltip: {
           callbacks: {
             label: function(context) {
-              return context.dataset.label + ': ' + context.formattedValue;
+              return context.dataset.label + ': ' + context.dataset.data[0];
             }
           }
         }
       },
       scales: {
-        x: {
-          ticks: {
-            maxRotation: 90,
-            minRotation: 45
-          }
-        },
-        y: {
-          beginAtZero: true
-        }
+        x: { ticks: { maxRotation: 90, minRotation: 45 } },
+        y: { beginAtZero: true }
       }
     }
   });
 }
 
 function updateChart(metric) {
-  createChart(metric);
+  currentMetric = metric;
+  createChart(currentMetric);
+  highlightCompany();
+}
+
+function highlightCompany() {
+  const select = document.getElementById('companySelect');
+  const selected = select.value;
+  
+  chart.data.datasets.forEach(ds => {
+    if(selected !== 'none' && ds.label === selected) {
+      ds.borderWidth = 5;
+      ds.borderColor = 'rgba(255,0,0,1)';
+      ds.pointRadius = 7;
+    } else {
+      ds.borderWidth = 2;
+      ds.pointRadius = 5;
+    }
+  });
+  chart.update();
 }
 
 window.onload = loadData;
