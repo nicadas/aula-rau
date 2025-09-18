@@ -75,23 +75,30 @@ let companies = [];
 let chart;
 let currentMetric = 'revenue_current';
 
+// Função para carregar os dados do TXT corretamente
 async function loadData() {
-  const response = await fetch('companies_data_named.txt');
-  const text = await response.text();
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',');
+    try {
+        const response = await fetch('companies_data_named.txt');
+        if (!response.ok) throw new Error('Erro ao carregar o arquivo TXT.');
+        const text = await response.text();
+        const lines = text.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
 
-  companies = lines.slice(1).map(line => {
-    const parts = line.split(',');
-    let obj = {};
-    headers.forEach((header, index) => {
-      obj[header] = header === 'name' ? parts[index] : parseFloat(parts[index]);
-    });
-    return obj;
-  });
+        companies = lines.slice(1).map(line => {
+            const parts = line.split(',').map(p => p.trim());
+            if (parts.length < headers.length) return null;
+            let obj = {};
+            headers.forEach((header, index) => {
+                obj[header] = header === 'name' ? parts[index] : parseFloat(parts[index]);
+            });
+            return obj;
+        }).filter(c => c !== null);
 
-  populateDropdown();
-  createChart(currentMetric);
+        populateDropdown();
+        createChart(currentMetric);
+    } catch (error) {
+        console.error('Erro ao carregar os dados:', error);
+    }
 }
 
 function populateDropdown() {
